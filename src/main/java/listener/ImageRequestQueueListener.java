@@ -4,11 +4,15 @@ import com.amazonaws.services.sqs.model.Message;
 import constants.ServiceConstants;
 import dao.JobDao;
 import model.Job;
+import model.JobStatus;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import service.BashExecuterService;
 import service.SqsService;
 
@@ -69,6 +73,15 @@ public class ImageRequestQueueListener implements Runnable {
                     String result = bashExecuterService.recognizeImage(job.getUrl());
                     LOGGER.info("Result computed for jobId={}, result={}", job.getId(), result);
                     job.setResult(result);
+
+                    if(StringUtils.isEmpty(result)) {
+                        job.setStatus(JobStatus.FAILED);
+                    }
+                    else {
+                        job.setStatus(JobStatus.COMPLETE);
+                    }
+
+                    job.setCompletedDateTime(DateTime.now(DateTimeZone.UTC));
 
                     // Updates job record in MongoDB.
                     jobDao.updateJob(job);
