@@ -9,4 +9,6 @@ public interface UploadService {
     void createJob(Job job);
 
     void uploadResultToS3(String fileContent);
+
+    void putResultAsKeyValuePairs(String fileContent);
 }
