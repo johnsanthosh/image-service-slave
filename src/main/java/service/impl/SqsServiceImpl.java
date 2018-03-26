@@ -33,7 +33,7 @@ public class SqsServiceImpl implements SqsService {
         SendMessageRequest sendMessageRequest = new SendMessageRequest(queueUrl, jobId);
         sendMessageRequest.setMessageGroupId(groupId);
         amazonSQS.sendMessage(sendMessageRequest);
-        LOGGER.info("Inserting message={} into SQS.", jobId);
+        LOGGER.info("Inserting message={} into SQS with queueName={}.", jobId, queueName);
     }
 
     @Override
@@ -41,7 +41,7 @@ public class SqsServiceImpl implements SqsService {
         String queueUrl = amazonSQS.getQueueUrl(queueName).getQueueUrl();
         SendMessageRequest sendMessageRequest = new SendMessageRequest(queueUrl, jobId);
         amazonSQS.sendMessage(sendMessageRequest);
-        LOGGER.info("Inserting message={} into SQS.", jobId);
+        LOGGER.info("Inserting message={} into SQS with queueName={}.", jobId, queueName);
     }
 
     @Override
