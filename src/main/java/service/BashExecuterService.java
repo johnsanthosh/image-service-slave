@@ -1,9 +1,10 @@
 package service;
 
+import model.ImageRecognitionResult;
 import model.Job;
 
 public interface BashExecuterService {
-    String recognizeImage(String imageUrl);
+    ImageRecognitionResult recognizeImage(String imageUrl);
 
     void shutDownInstance();
 }
