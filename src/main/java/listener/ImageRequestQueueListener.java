@@ -2,6 +2,7 @@ package listener;
 
 import com.amazonaws.services.sqs.model.Message;
 import dao.JobDao;
+import model.ImageRecognitionResult;
 import model.Job;
 import model.JobStatus;
 import org.joda.time.DateTime;
@@ -50,6 +51,9 @@ public class ImageRequestQueueListener implements Runnable {
     @Value("${sleep.time.min}")
     private int minSleepTime;
 
+    @Value("${app.auto.shutdown.enabled}")
+    private boolean isAutoShutdownEnabled;
+
     private static int count = 0;
 
     public ImageRequestQueueListener() {
@@ -76,15 +80,14 @@ public class ImageRequestQueueListener implements Runnable {
     }
 
     private void pollRequestQueue() {
-        LOGGER.info("ImageRequestQueueListener : Polling request SQS for messages.");
+        LOGGER.info("ImageRequestQueueListener : Polling request SQS for messages, shutdownCounter={}", count);
         List<Message> messages = null;
 
         messages = sqsService.getMessages(this.requestQueueName);
 
         if (CollectionUtils.isEmpty(messages)) {
             try {
-                LOGGER.info("ImageRequestQueueListener : count={}", count);
-                if (count >= 3) {
+                if (isAutoShutdownEnabled && count >= 3) {
                     LOGGER.info("ImageRequestQueueListener : Shutting down instance.");
                     bashExecuterService.shutDownInstance();
                     sqsService.insertToQueue("Instance shutting down.", this.instanceShutdownQueueName);
@@ -96,13 +99,13 @@ public class ImageRequestQueueListener implements Runnable {
                 LOGGER.error(e.getMessage());
             }
         } else {
-
+            count = 0;
             String messageBody = messages.get(0).getBody();
             LOGGER.info("ImageRequestQueueListener : Request queue Message body={}", messageBody);
 
             // Fetches job record from MongoDB.
             Job job = jobDao.getJob(messageBody);
-            String result = "";
+            ImageRecognitionResult result = null;
 
             if (job == null) {
                 LOGGER.info("ImageRequestQueueListener : Unable to retrieve job with id={} record from Mongo,", messageBody);
@@ -110,12 +113,11 @@ public class ImageRequestQueueListener implements Runnable {
                 // Execute bash script to recognize image.
                 result = bashExecuterService.recognizeImage(job.getUrl());
 
-                if (StringUtils.isEmpty(result)) {
-                    LOGGER.info("ImageRequestQueueListener : Result computation for jobId={} failed.", messageBody);
-                    job.setResult(result);
+                if (result.getResult() == null) {
+                    LOGGER.error("ImageRequestQueueListener : Result computation for jobId={} failed.", messageBody);
                     job.setStatus(JobStatus.FAILED);
                 } else {
-                    LOGGER.info("ImageRequestQueueListener : Result computed for jobId={}, result={}", job.getId(), result);
+                    LOGGER.info("ImageRequestQueueListener : Result computed for jobId={}, result={}", job.getId(), result.getResult());
                     job.setCompletedDateTime(DateTime.now(DateTimeZone.UTC));
                     job.setStatus(JobStatus.COMPLETE);
 
@@ -123,7 +125,7 @@ public class ImageRequestQueueListener implements Runnable {
                     String messageReceiptHandle = messages.get(0).getReceiptHandle();
                     sqsService.deleteMessage(messageReceiptHandle, this.requestQueueName);
 
-                    String resultString = "[" + job.getInputFilename() + "," + result.split("\\(score")[0] + "]";
+                    String resultString = "[" + job.getInputFilename() + "," + result.getResult().split("\\(score")[0] + "]";
 
                     //Appends to a file (actually replaces the file for every request). Doesn't ensure correctness of concurrent requests.
                     uploadService.uploadResultToS3(resultString);
@@ -132,6 +134,8 @@ public class ImageRequestQueueListener implements Runnable {
                 }
 
                 // Updates job record in MongoDB.
+                job.setResult(result.getResult());
+                job.setError(result.getError());
                 jobDao.updateJob(job);
 
 
