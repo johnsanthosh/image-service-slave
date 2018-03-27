@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 @EnableMongoRepositories({"repository"})
 public class Application {
     public static void main(String args[]) {
+        System.setProperty("log.name", "image-service-slave-logs");
         SpringApplication.run(Application.class, args);
     }
 }
