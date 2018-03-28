@@ -147,7 +147,7 @@ public class UploadServiceImpl implements UploadService {
     }
 
     @Override
-    public void putResultAsKeyValuePairs(String fileContent) {
+    public void putResultAsKeyValuePairsFile(String fileContent) {
         try {
 
             String key = fileContent;
@@ -164,6 +164,28 @@ public class UploadServiceImpl implements UploadService {
             LOGGER.error(e.getMessage());
         }
     }
+
+    @Override
+    public void putResultAsKeyValuePairs(String key, String value) {
+        try {
+
+//            String key = fileContent;
+
+            byte[] contentBytes = value.getBytes(StandardCharsets.UTF_8);
+            ByteArrayInputStream contentStream = new ByteArrayInputStream(contentBytes);
+
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(contentBytes.length);
+
+            s3Client.putObject(new PutObjectRequest(resultBucketName, key, contentStream, metadata));
+
+        } catch (AmazonS3Exception e) {
+            LOGGER.error(e.getMessage());
+        }
+    }
+
+
+
 
     @Override
     public void createJob(Job job) {

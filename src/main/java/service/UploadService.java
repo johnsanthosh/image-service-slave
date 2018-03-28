@@ -10,5 +10,7 @@ public interface UploadService {
 
     void uploadResultToS3(String fileContent);
 
-    void putResultAsKeyValuePairs(String fileContent);
+    void putResultAsKeyValuePairsFile(String fileContent);
+
+    void putResultAsKeyValuePairs(String key, String value);
 }
