@@ -87,7 +87,7 @@ public class ImageRequestQueueListener implements Runnable {
 
         if (CollectionUtils.isEmpty(messages)) {
             try {
-                if (isAutoShutdownEnabled && count >= 3) {
+                if (isAutoShutdownEnabled && count >= 1) {
                     LOGGER.info("ImageRequestQueueListener : Shutting down instance.");
                     bashExecuterService.shutDownInstance();
                     sqsService.insertToQueue("Instance shutting down.", this.instanceShutdownQueueName);
