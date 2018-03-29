@@ -87,7 +87,7 @@ public class ImageRequestQueueListener implements Runnable {
 
         if (CollectionUtils.isEmpty(messages)) {
             try {
-                if (isAutoShutdownEnabled && count >= 3) {
+                if (isAutoShutdownEnabled && count >= 1) {
                     LOGGER.info("ImageRequestQueueListener : Shutting down instance.");
                     bashExecuterService.shutDownInstance();
                     sqsService.insertToQueue("Instance shutting down.", this.instanceShutdownQueueName);
@@ -128,9 +128,9 @@ public class ImageRequestQueueListener implements Runnable {
                     String resultString = "[" + job.getInputFilename() + "," + result.getResult().split("\\(score")[0] + "]";
 
                     //Appends to a file (actually replaces the file for every request). Doesn't ensure correctness of concurrent requests.
-                    uploadService.uploadResultToS3(resultString);
+//                    uploadService.uploadResultToS3(resultString);
                     //Writes as key value pairs to a different bucket. Key = resultString and content also is resultString here.
-                    uploadService.putResultAsKeyValuePairs(resultString);
+                    uploadService.putResultAsKeyValuePairs(job.getInputFilename(), result.getResult().split("\\(score")[0]);
                 }
 
                 // Updates job record in MongoDB.
